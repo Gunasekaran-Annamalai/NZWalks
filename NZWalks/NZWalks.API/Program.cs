@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using NZWalks.API.Models.Data;
+using NZWalks.API.Data;
+using NZWalks.API.Mappings;
+using NZWalks.API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,11 @@ builder.Services.AddSwaggerGen();
     -> In this method we'll not create an object but pass in the dependencies as parameters to the base class. */
 builder.Services.AddDbContext<NZWalksDbContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString")));
+
+builder.Services.AddScoped<IRegionRepository, SQLRegionRepository>();
+
+// Automapper needs an Assembly to scan so that we use "typeof(our_mapper_class)"
+builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
 
 var app = builder.Build();
 
