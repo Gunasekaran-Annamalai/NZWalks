@@ -20,6 +20,7 @@ builder.Services.AddDbContext<NZWalksDbContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString")));
 
 builder.Services.AddScoped<IRegionRepository, SQLRegionRepository>();
+builder.Services.AddScoped<IWalkRepository, SQLWalkRepository>();
 
 // Automapper needs an Assembly to scan so that we use "typeof(our_mapper_class)"
 builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));

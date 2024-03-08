@@ -16,6 +16,9 @@
         // Navigation properties
         // Wrinting the properties like this will tell EF to create a relationship between given tables with this table
         // This defines a one-to-one relationship between [Walk & Difficulty] and [Walk & Region]
+
+        // The navigatio property is optional, it is useful when you want to send these data to the client
+        // Or it is useful if you need the data for any other process
         public Difficulty Difficulty { get; set; }
         public Region Region { get; set; }
     }
