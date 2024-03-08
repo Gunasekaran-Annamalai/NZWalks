@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NZWalks.API.CustomActionFilter;
 using NZWalks.API.Data;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTO;
@@ -60,11 +61,15 @@ namespace NZWalks.API.Controllers
         }
 
         [HttpPost]
+        [ValidateModel] 
+        /* this is a custom annotation which is used to check the below model 
+         * (AddRegionRequestDTO) satisfies the validation which is given as "annotations in AddRegionRequestDTO.cs" file
+         */
         public async Task<IActionResult> Create([FromBody] AddRegionRequestDTO addRegionRequestDTO)
         {
             if (addRegionRequestDTO is null)
             {
-                return BadRequest("Not inserted");
+                return BadRequest("Item is null");
             }
             // Map or Convert DTO to Domain model
             var regionDomainModel = _mapper.Map<Region>(addRegionRequestDTO);
@@ -81,20 +86,22 @@ namespace NZWalks.API.Controllers
             // Creates a CreatedAtActionResult object that produces a Status201Created response.
 
             * CreatedAtAction(String, Object, Object)
-             * Parameters
-             * actionName -> String
-             * The name of the action to use for generating the URL.
-             * 
-             * routeValues -> Object
-             * The route data to use for generating the URL.
-             * value -> Object
-             * The content value to format in the entity body.*/
+                * Parameters
+                * actionName -> String
+                * The name of the action to use for generating the URL.
+                * 
+                * routeValues -> Object
+                * The route data to use for generating the URL.
+                * value -> Object
+                * The content value to format in the entity body.*/
 
             return CreatedAtAction(nameof(GetById), new { id = regionDTO.Id }, regionDTO);
+            
         }
 
         [HttpPut]
         [Route("{id:Guid}")]
+        [ValidateModel]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRegionRequestDTO updateRegionRequestDTO)
         {
             // Map DTO to Domain Model
