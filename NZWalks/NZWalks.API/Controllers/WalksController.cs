@@ -33,9 +33,22 @@ namespace NZWalks.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        // Get: /api/walks?filterOn=Field_Name&filterQuery=Track&sortBy=Name&isAscending=true&pageNumber=1&pageSize=10
+        // filterOn -> name of the field/property that we want to make search/filter on Eg: [filterOn=Name, filterQuery=Alex]
+        // filterQuery -> the word/sentence that we need to search
+        // sortBy -> the column that we want to be sorted
+        // isAscending -> if true ascending else decending
+
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? filterOn, 
+            [FromQuery] string? filterQuery, 
+            [FromQuery] string? sortBy, 
+            [FromQuery] bool? isAscending,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 1000)
         {
-            var walksDomainModel = await _walkRepository.GetAllAsync();
+            // isAscending ?? true -> saying that if isAscending is null then consider it as true
+            var walksDomainModel = await _walkRepository.GetAllAsync(filterOn, filterQuery, sortBy, isAscending ?? true, pageNumber, pageSize);
             // Map Domain to DTO
             return Ok(_mapper.Map<List<WalkDTO>>(walksDomainModel));
         }
