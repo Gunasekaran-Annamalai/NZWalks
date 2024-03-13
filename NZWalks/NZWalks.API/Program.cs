@@ -1,7 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using NZWalks.API.Data;
 using NZWalks.API.Mappings;
 using NZWalks.API.Repositories;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,20 +15,101 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// builder.Services.AddSwaggerGen(); // -> this is the default
+// this is the Swagger with our configuration
+// we configure it to use authorization
 
-/*  -> We are adding our DbContext class "NZWalksDbContext" as a dependency
-    -> so that whenever the DbContext class is used it will take the connection string and the options from here.
-    -> We also passed the options to the base class in DbConext as well
-    -> In this method we'll not create an object but pass in the dependencies as parameters to the base class. */
+builder.Services.AddSwaggerGen(options =>
+{
+    // the below code is to configure swagger to use authentication
+    // it is no needed if not necessary
+    // options.SwaggerDoc("v1" -> name for our swagger)
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "NZ Walks API", Version = "v1" });
+    options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme
+                },
+                Scheme = "Oauth2",
+                Name = JwtBearerDefaults.AuthenticationScheme,
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+});
+
+/*  
+ *  -> We are adding our DbContext class "NZWalksDbContext" as a dependency
+ *  -> so that whenever the DbContext class is used it will take the connection string and the options from here.
+ *  -> We also passed the options to the base class in DbConext as well
+ *  -> In this method we'll not create an object but pass in the dependencies as parameters to the base class. 
+ */
 builder.Services.AddDbContext<NZWalksDbContext>(
     options => options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionString")));
 
+/* 
+ * -> whenever we have multiple DbContext, we need to specify the DbContext name while running the migration
+ * -> Example: 
+ *      Add-Migration "Creating Auth Database" -Context "NZWalksAuthDbContext"
+ *      Update-Migration -Context "NZWalksAuthDbContext"
+ * -> always use the above format whenever you use multiple DbContext
+ */
+builder.Services.AddDbContext<NZWalksAuthDbContext>(
+    options => options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksAuthConnectionString")));
+
 builder.Services.AddScoped<IRegionRepository, SQLRegionRepository>();
 builder.Services.AddScoped<IWalkRepository, SQLWalkRepository>();
+builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 
 // Automapper needs an Assembly to scan so that we use "typeof(our_mapper_class)"
 builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
+
+// Configuring Identity
+builder.Services.AddIdentityCore<IdentityUser>()
+    .AddRoles<IdentityRole>()
+    .AddTokenProvider<DataProtectorTokenProvider<IdentityUser>>("NZWalks")
+    .AddEntityFrameworkStores<NZWalksAuthDbContext>()
+    .AddDefaultTokenProviders();
+
+// Configuring Identity options
+// Here, we are configuring the Password field, which will be created automatically when we created Auth database
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
+});
+
+// Configuring JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => 
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    });
 
 var app = builder.Build();
 
@@ -35,6 +121,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

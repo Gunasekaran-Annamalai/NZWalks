@@ -7,7 +7,13 @@ namespace NZWalks.API.Data
     {
         // setting DbContextOptions: it is used because we'll configure our Database connection in Program.cs
         // we are passing the options object to base class constructor as well [base(dbContextOptions)]
-        public NZWalksDbContext(DbContextOptions dbContextOptions) : base(dbContextOptions)
+        // this method of using construtor with options is necessary, because we'll configure DbContext options in program.cs
+        /* old code - public NZWalksDbContext(DbContextOptions dbContextOptions) : base(dbContextOptions)
+         * the above old code is fine if we use only one DbContext. But, if we use multiple DbContext then,
+         * we need to specify the DbContext type/class that we created
+         * as shown below
+         */
+        public NZWalksDbContext(DbContextOptions<NZWalksDbContext> dbContextOptions) : base(dbContextOptions)
         {
 
         }

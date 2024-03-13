@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NZWalks.API.CustomActionFilter;
@@ -12,6 +13,10 @@ namespace NZWalks.API.Controllers
     // https://localhost:portnumber/api/regions -> "regions" it is taking from class name which is "RegionsController"
     [Route("api/[controller]")]
     [ApiController]
+    // -> [Authorize] // we can specify it globally like this for whole controller or specifically as well
+    // this is used to authorize any request to the regions controller
+    // only authorized user/client will be able to access the regions endpoints
+    // When we use [Authorize] without any specific role like below, the created JWT will work for every role
     public class RegionsController : ControllerBase
     {
         private readonly NZWalksDbContext _dbContext;
@@ -27,6 +32,7 @@ namespace NZWalks.API.Controllers
 
         // GET: https://localhost:portnumber/api/regions
         [HttpGet]
+        [Authorize(Roles = "Reader")]
         public async Task<IActionResult> GetAll()
         {
             // Get Data from Database - Domain Models
@@ -40,6 +46,7 @@ namespace NZWalks.API.Controllers
 
         [HttpGet]
         [Route("{id:Guid}")]
+        [Authorize(Roles = "Reader")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
             // this method, which is select using "Find()" will only match Primary key,
@@ -61,7 +68,8 @@ namespace NZWalks.API.Controllers
         }
 
         [HttpPost]
-        [ValidateModel] 
+        [ValidateModel]
+        [Authorize(Roles = "Writer")]
         /* this is a custom annotation which is used to check the below model 
          * (AddRegionRequestDTO) satisfies the validation which is given as "annotations in AddRegionRequestDTO.cs" file
          */
@@ -102,6 +110,7 @@ namespace NZWalks.API.Controllers
         [HttpPut]
         [Route("{id:Guid}")]
         [ValidateModel]
+        [Authorize(Roles = "Writer")]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRegionRequestDTO updateRegionRequestDTO)
         {
             // Map DTO to Domain Model
@@ -120,6 +129,7 @@ namespace NZWalks.API.Controllers
 
         [HttpDelete]
         [Route("{id:Guid}")]
+        [Authorize(Roles = "Writer, Reader")]
         public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
             var regionDomainModel = await _regionRepository.DeleteAsync(id);
